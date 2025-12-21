@@ -11,3 +11,6 @@ wheels/
 
 # file storage
 uploads/
+
+# env
+.env

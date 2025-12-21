@@ -1,9 +1,25 @@
 import os
 from pathlib import Path
 from docling.document_converter import DocumentConverter
+from typing import Dict
 
-def process_documents(folder_path):
-  # 1. Setup the "Reader" (the coverter)
+def process_documents(folder_path: str) -> list[Dict[str, str]]:
+  """Process PDF and DOCX documents from a folder into a digital library.
+  
+  Args:
+    folder_path: Path to the folder containing documents to process
+    
+  Returns:
+    List of document metadata dictionaries
+    
+  Raises:
+    FileNotFoundError: If the folder_path does not exist
+  """
+
+  if not Path(folder_path).exists():
+    raise FileNotFoundError(f"Folder not found: {folder_path}")
+  
+  # 1. Setup the "Reader" (the converter)
   converter = DocumentConverter()
   
   # 2. This List will hold all our Dictionaries (Your "Digital Library")
@@ -11,9 +27,7 @@ def process_documents(folder_path):
   
   # 3. Look at every file in the folder and its subdirectories
   files = list(Path(folder_path).glob("**/*"))
-  
-  # print(files)
-  
+    
   for file_path in files:
     # We only want PDFs and Word documents
     if file_path.suffix.lower() not in [".pdf", ".docx"]:
@@ -21,18 +35,28 @@ def process_documents(folder_path):
     
     print(f"--- Processing: {file_path.name}")
     
-    # 4. Conversion: Transform the file into structured Markdown
-    # Markdown is better than plain text because it keeps headers (#) and tables intact
-    result = converter.convert(file_path)
-    markdown_content = result.document.export_to_markdown()
+    try:
+      # 4. Conversion: Transform the file into structured Markdown
+      # Markdown is better than plain text because it keeps headers (#) and tables intact
+      result = converter.convert(file_path)
+      markdown_content = result.document.export_to_markdown()
+    except Exception as e:
+      print(f"ERROR: Failed to process {file_path.name}: {e}")
+      continue
     
     # 5. The Dictionary: This is the "Data Package" for this specific file
     # We store metadata here so we don't lose track of who wrote what
+    
+    try: 
+      file_size = os.path.getsize(file_path)
+    except OSError:
+      file_size = 0
+
     doc_entry = {
       "filename": file_path.name,
       "writer": "System detected", # Later we can extract this from metadata,
       "content": markdown_content,
-      "file_size": os.path.getsize(file_path),
+      "file_size": file_size,
       "status": "ready_for_ai"
     }
     
