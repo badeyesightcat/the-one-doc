@@ -40,10 +40,20 @@
 
 - digital_library looks like
 
-```
+```json
 [
-  { "filename": "Doc_A.pdf", "content": "# Header\nThis is unique text..." },
-  { "filename": "Doc_B.docx", "content": "# Header\nThis is duplicated text..." }
+  {
+    "id": "Doc_A.pdf",
+    "full_text": "This is unique text...",
+    "metadata": { "created_at": 1703001600.0, "author": "John Doe" },
+    "chunks": []
+  },
+  {
+    "id": "Doc_B.docx",
+    "full_text": "This is duplicated text...",
+    "metadata": { "created_at": 1703088000.0, "author": "Jane Smith" },
+    "chunks": []
+  }
 ]
 ```
 
