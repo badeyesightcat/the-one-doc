@@ -4,7 +4,7 @@
 
 - Install python: I am using python@3.12.11
 - Install VS code: I skipped this since it's already installed on mine
-- Get an API key: I got one from OPENAI but after trial I want to exchage that into one in Gemini
+- Get an API key: I got one from OPENAI but after trial I want to exchange that into one in Gemini
 - Create a project folder: which is named "the-one-doc"
 - Use UV as a Python package and project manager
 - Add docling and python-docx as dependencies

@@ -14,3 +14,6 @@ uploads/
 
 # env
 .env
+
+# Cache files
+*cache.*
