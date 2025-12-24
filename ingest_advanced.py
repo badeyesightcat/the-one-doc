@@ -1,9 +1,19 @@
 import os
+# import json
+import hashlib
 import fitz
 import docx
-from datetime import datetime
 from pathlib import Path
+from dateutil import parser as date_parser
 
+def get_file_hash(file_path):
+    """Generates a unique MD5 fingerprint for the file content."""
+    hasher = hashlib.md5()
+    with open(file_path, 'rb') as f:
+        buf = f.read()
+        hasher.update(buf)
+    return hasher.hexdigest()
+  
 def get_file_metadata(file_path: Path) -> dict:
     """Extracts creation date and author from file properties."""
     stats = os.stat(file_path)
@@ -13,13 +23,19 @@ def get_file_metadata(file_path: Path) -> dict:
     # Try to get specific internal metadata
     if file_path.suffix == ".pdf":
         try:
-            doc = fitz.open(file_path)
-            pdf_meta = doc.metadata
-            if pdf_meta.get("creationDate"):
-                meta["created_at"] = pdf_meta["creationDate"]
-            if pdf_meta.get("author"):
-                meta["author"] = pdf_meta["author"]
-            doc.close()
+            with fitz.open(file_path) as doc:
+                pdf_meta = doc.metadata
+                if pdf_meta.get("creationDate"):
+                    date_str = pdf_meta["creationDate"]
+                    if date_str.startswith("D:"):
+                        date_str = date_str[2:]
+                    try:
+                        parsed = date_parser.parse(date_str[:14])
+                        meta["created_at"] = parsed.timestamp()
+                    except ValueError:
+                        pass  # Keep filesystem timestamp as fallback
+                if pdf_meta.get("author"):
+                    meta["author"] = pdf_meta["author"]
         except Exception as e:
             print(f"Warning: Could not extract PDF metadata from {file_path.name}: {e}")
 
@@ -44,7 +60,8 @@ def ingest_documents_advanced(folder_path: str) -> list[dict]:
         if file_path.suffix not in [".pdf", ".docx"]:
             continue
         
-        print(f"Reading {file_path.name}...")
+        # 1. Calculate the Hash (The Digital Fingerprint)
+        file_hash = get_file_hash(file_path)
         
         # 1. Extract text
         text_content = ""
@@ -59,17 +76,23 @@ def ingest_documents_advanced(folder_path: str) -> list[dict]:
         except Exception as e:
             print(f"Warning: Failed to extract text from {file_path.name}: {e}")
         
-        # 2. Extract metadata
-        metadata = get_file_metadata(file_path)
-        
-        # 3. Build the universal dictionary
+        base_path = Path(folder_path)
+
+        # 3. Create the Document Object
+        # We attach 'file_hash' so the next step knows if it can skip AI processing
         doc_entry = {
-            "id": file_path.name,
+            "id": str(file_path.relative_to(base_path)),
+            "file_hash": file_hash,
             "full_text": text_content,
-            "metadata": metadata,
+            "metadata": get_file_metadata(file_path),
             "chunks": []
         }
         
         digital_library.append(doc_entry)
     
     return digital_library
+
+if __name__ == "__main__":
+    # Test run
+    docs = ingest_documents_advanced("uploads")
+    print(f"Ingested {len(docs)} docs. First doc hash: {docs[0].get('file_hash', 'N/A')}")
