@@ -1,4 +1,5 @@
 import os
+
 # import json
 import hashlib
 import fitz
@@ -6,18 +7,20 @@ import docx
 from pathlib import Path
 from dateutil import parser as date_parser
 
+
 def get_file_hash(file_path):
-    """Generates a unique MD5 fingerprint for the file content."""
-    hasher = hashlib.md5()
-    with open(file_path, 'rb') as f:
-        buf = f.read()
-        hasher.update(buf)
+    """Generates a unique SHA-256 fingerprint for the file content."""
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            hasher.update(chunk)
     return hasher.hexdigest()
-  
+
+
 def get_file_metadata(file_path: Path) -> dict:
     """Extracts creation date and author from file properties."""
     stats = os.stat(file_path)
-    created_timestamp = getattr(stats, 'st_birthtime', stats.st_ctime)
+    created_timestamp = getattr(stats, "st_birthtime", stats.st_ctime)
     meta = {"created_at": created_timestamp, "author": "Unknown"}
 
     # Try to get specific internal metadata
@@ -48,21 +51,24 @@ def get_file_metadata(file_path: Path) -> dict:
             if core_props.author:
                 meta["author"] = core_props.author
         except Exception as e:
-            print(f"Warning: Could not extract DOCX metadata from {file_path.name}: {e}")
+            print(
+                f"Warning: Could not extract DOCX metadata from {file_path.name}: {e}"
+            )
 
     return meta
 
+
 def ingest_documents_advanced(folder_path: str) -> list[dict]:
     digital_library = []
-    files = list(Path(folder_path).glob("**/*"))
-    
+    files = list(Path(folder_path).glob("*"))
+
     for file_path in files:
         if file_path.suffix not in [".pdf", ".docx"]:
             continue
-        
+
         # 1. Calculate the Hash (The Digital Fingerprint)
         file_hash = get_file_hash(file_path)
-        
+
         # 1. Extract text
         text_content = ""
         try:
@@ -75,7 +81,7 @@ def ingest_documents_advanced(folder_path: str) -> list[dict]:
                 text_content = "\n\n".join([p.text for p in doc.paragraphs])
         except Exception as e:
             print(f"Warning: Failed to extract text from {file_path.name}: {e}")
-        
+
         base_path = Path(folder_path)
 
         # 3. Create the Document Object
@@ -85,14 +91,20 @@ def ingest_documents_advanced(folder_path: str) -> list[dict]:
             "file_hash": file_hash,
             "full_text": text_content,
             "metadata": get_file_metadata(file_path),
-            "chunks": []
+            "chunks": [],
         }
-        
+
         digital_library.append(doc_entry)
-    
+
     return digital_library
+
 
 if __name__ == "__main__":
     # Test run
     docs = ingest_documents_advanced("uploads")
-    print(f"Ingested {len(docs)} docs. First doc hash: {docs[0].get('file_hash', 'N/A')}")
+    if docs:
+        print(
+            f"Ingested {len(docs)} docs. First doc hash: {docs[0].get('file_hash', 'N/A')}"
+        )
+    else:
+        print("No documents found to ingest.")
