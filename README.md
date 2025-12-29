@@ -77,3 +77,15 @@ uv add openai scikit-learn python-dotenv
 ##### 3. Compare them to find duplicates
 
 ##### 4. Arbitrate which one is the most authentic and genuine
+
+---
+
+### :scissors: Synthesis and Assembly stage
+
+- Contains **only** the unique, original information
+- Preserves the winning version of evey pargraph
+- Adds the **proof of work**: digital hash and writer contribution
+- Strategy: Base + Delta,
+  1. Identify the base: The document with the highest authenticity score becomes the skeleton
+  2. Inject the deltas: Any **unique** chunks found in other docs are appended as "additional unique clauses".
+  3. Stamp it: Generate a final "audit report" at the end of the file.
